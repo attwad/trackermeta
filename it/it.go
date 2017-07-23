@@ -3,11 +3,11 @@ package it
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"strings"
 
 	"github.com/attwad/trackermeta/data"
 )
@@ -62,11 +62,6 @@ func ReadITFile(path string) (*data.TrackerFile, error) {
 	if err := binary.Read(br, binary.LittleEndian, &rh); err != nil {
 		return nil, err
 	}
-	if rh.CompatibleWithVersionGT < 0x200 {
-		// TODO: Parse old format.
-		// https://github.com/schismtracker/schismtracker/wiki/ITTECH.TXT#old-impulse-instrument-format-cmwt--200h
-		return nil, fmt.Errorf("Cannot parse old instrument format")
-	}
 	log.Printf("Parsed raw header: %+v\n", rh)
 	f := flags{
 		(rh.Flags & (1 << 7)) == 1<<7,
@@ -86,7 +81,7 @@ func ReadITFile(path string) (*data.TrackerFile, error) {
 		Tracker:        "Impulse Tracker",
 		TrackerVersion: rh.CreatedWithVersion,
 		FileName:       filepath.Base(path),
-		Name:           string(rh.Name[:bytes.IndexByte(rh.Name[:], 0)]),
+		Name:           strings.TrimSpace(string(rh.Name[:bytes.IndexByte(rh.Name[:], 0)])),
 		Stereo:         f.Stereo,
 	}
 	log.Printf("Flags: %+v\n", f)
@@ -113,7 +108,7 @@ func ReadITFile(path string) (*data.TrackerFile, error) {
 		if _, err := br.Seek(currentOffset, io.SeekStart); err != nil {
 			return nil, err
 		}
-		tf.Message = string(msg[:bytes.IndexByte(msg[:], 0)])
+		tf.Message = strings.TrimSpace(string(msg[:bytes.IndexByte(msg[:], 0)]))
 	}
 	log.Printf("Special: %+v\n", s)
 	ordersOrder := make([]int8, rh.OrdNum)
@@ -147,53 +142,68 @@ func ReadITFile(path string) (*data.TrackerFile, error) {
 		if _, err := br.Seek(int64(insOffset), io.SeekStart); err != nil {
 			return nil, err
 		}
-
-		type envelope struct {
-			Flags              byte
-			NumberOfNodePoints int8
-			LoopBegin          int8
-			LoopEnd            int8
-			SustainLoopBegin   int8
-			SustainLoopEnd     int8
-			_                  [75]byte
-			_                  byte
-		}
-		// TODO: Instruments parsing is wrong... one off somewhere before instrument name...
-		type instrument struct {
-			IMPI                         [4]byte
-			DOSFilename                  [12]byte
-			_                            byte
-			NewNoteAction                byte
-			DuplicateCheckType           byte
-			DuplicateCheckAction         byte
-			Fadeout                      int16
-			PitchPanSeparation           byte
-			PitchPanCenter               byte
-			GlobalVolume                 byte
-			DefaultPan                   byte
-			RandomVolumeVariationPercent byte
-			_                            byte // Random panning variation (panning change - not implemented yet)
-			TrackerVersion               int16
-			NumberOfSamples              int8
-			_                            byte
-			Name                         [26]byte
-			InitialFilterCutoff          int8
-			InitialFilterResonance       int8
-			MidiChannel                  int8
-			MidiProgram                  int8
-			MidiBank                     int16
-			Notes                        [240]byte
-			Envelopes                    [3]envelope
-		}
-		instruments := make([]instrument, rh.InsNum)
-		for i := uint16(0); i < rh.InsNum; i++ {
-			if err := binary.Read(br, binary.LittleEndian, &instruments[i]); err != nil {
-				return nil, err
+		if rh.CompatibleWithVersionGT < 0x200 {
+			log.Fatal(path)
+			type oldInstrument struct {
+				IMPI        [4]byte
+				DOSFilename [12]byte
+				// Do not really care about the rest...
+				_ [554 - 12 - 4]byte
 			}
-		}
-		log.Println("Instruments:")
-		for i, ins := range instruments {
-			log.Printf("[%d]: %s\n", i, ins.Name)
+			instruments := make([]oldInstrument, rh.InsNum)
+			for i := uint16(0); i < rh.InsNum; i++ {
+				if err := binary.Read(br, binary.LittleEndian, &instruments[i]); err != nil {
+					return nil, err
+				}
+			}
+		} else {
+			type envelope struct {
+				Flags              byte
+				NumberOfNodePoints int8
+				LoopBegin          int8
+				LoopEnd            int8
+				SustainLoopBegin   int8
+				SustainLoopEnd     int8
+				_                  [75]byte
+				_                  byte
+			}
+			// TODO: Instruments parsing is wrong... one off somewhere before instrument name...
+			type instrument struct {
+				IMPI                         [4]byte
+				DOSFilename                  [12]byte
+				_                            byte
+				NewNoteAction                byte
+				DuplicateCheckType           byte
+				DuplicateCheckAction         byte
+				Fadeout                      int16
+				PitchPanSeparation           byte
+				PitchPanCenter               byte
+				GlobalVolume                 byte
+				DefaultPan                   byte
+				RandomVolumeVariationPercent byte
+				_                            byte // Random panning variation (panning change - not implemented yet)
+				TrackerVersion               int16
+				NumberOfSamples              int8
+				_                            byte
+				Name                         [26]byte
+				InitialFilterCutoff          int8
+				InitialFilterResonance       int8
+				MidiChannel                  int8
+				MidiProgram                  int8
+				MidiBank                     int16
+				Notes                        [240]byte
+				Envelopes                    [3]envelope
+			}
+			instruments := make([]instrument, rh.InsNum)
+			for i := uint16(0); i < rh.InsNum; i++ {
+				if err := binary.Read(br, binary.LittleEndian, &instruments[i]); err != nil {
+					return nil, err
+				}
+			}
+			log.Println("Instruments:")
+			for i, ins := range instruments {
+				log.Printf("[%d]: %s\n", i, ins.Name)
+			}
 		}
 	}
 
