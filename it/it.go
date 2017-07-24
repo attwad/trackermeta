@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"io"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"strings"
 
@@ -62,7 +61,6 @@ func ReadITFile(path string) (*data.TrackerFile, error) {
 	if err := binary.Read(br, binary.LittleEndian, &rh); err != nil {
 		return nil, err
 	}
-	log.Printf("Parsed raw header: %+v\n", rh)
 	f := flags{
 		(rh.Flags & (1 << 7)) == 1<<7,
 		(rh.Flags & (1 << 6)) == 1<<6,
@@ -84,7 +82,6 @@ func ReadITFile(path string) (*data.TrackerFile, error) {
 		Name:           strings.TrimSpace(string(rh.Name[:bytes.IndexByte(rh.Name[:], 0)])),
 		Stereo:         f.Stereo,
 	}
-	log.Printf("Flags: %+v\n", f)
 	s := special{
 		SongMsgAttached:    (rh.Special & (1 << 7)) == 1<<7,
 		MidiConfigEmbedded: (rh.Special & (1 << 4)) == 1<<4,
@@ -110,40 +107,34 @@ func ReadITFile(path string) (*data.TrackerFile, error) {
 		}
 		tf.Message = strings.TrimSpace(string(msg[:bytes.IndexByte(msg[:], 0)]))
 	}
-	log.Printf("Special: %+v\n", s)
 	ordersOrder := make([]int8, rh.OrdNum)
 	if err := binary.Read(br, binary.LittleEndian, &ordersOrder); err != nil {
 		return nil, err
 	}
-	log.Printf("Orders in which patterns are played: %v\n", ordersOrder)
 
 	var insOffset int32
 	if rh.InsNum > 0 {
 		if err := binary.Read(br, binary.LittleEndian, &insOffset); err != nil {
 			return nil, err
 		}
-		log.Println("Ins offset:", insOffset)
 	}
 	var smpOffset int32
 	if rh.SmpNum > 0 {
 		if err := binary.Read(br, binary.LittleEndian, &smpOffset); err != nil {
 			return nil, err
 		}
-		log.Println("Smp offset:", smpOffset)
 	}
 	var ptnOffset int32
 	if rh.PtnNum > 0 {
 		if err := binary.Read(br, binary.LittleEndian, &ptnOffset); err != nil {
 			return nil, err
 		}
-		log.Println("Ptn offset:", ptnOffset)
 	}
 	if rh.InsNum > 0 {
 		if _, err := br.Seek(int64(insOffset), io.SeekStart); err != nil {
 			return nil, err
 		}
 		if rh.CompatibleWithVersionGT < 0x200 {
-			log.Fatal(path)
 			type oldInstrument struct {
 				IMPI        [4]byte
 				DOSFilename [12]byte
@@ -200,10 +191,6 @@ func ReadITFile(path string) (*data.TrackerFile, error) {
 					return nil, err
 				}
 			}
-			log.Println("Instruments:")
-			for i, ins := range instruments {
-				log.Printf("[%d]: %s\n", i, ins.Name)
-			}
 		}
 	}
 
@@ -238,11 +225,6 @@ func ReadITFile(path string) (*data.TrackerFile, error) {
 			if err := binary.Read(br, binary.LittleEndian, &samples[i]); err != nil {
 				return nil, err
 			}
-		}
-		//log.Println("Samples: ", samples)
-		log.Println("Samples:")
-		for i, smp := range samples {
-			log.Printf("[%d]: %s\n", i, smp.Name)
 		}
 	}
 	return tf, nil

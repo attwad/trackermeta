@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<head>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+</head>
+<body>
+  <table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp">
+  <thead>
+    <tr>
+      <th class="mdl-data-table__cell--non-numeric">Filename</th>
+      <th class="mdl-data-table__cell--non-numeric">Song name</th>
+      <th>#Instruments</th>
+      <th>#Samples</th>
+      <th>#Patterns</th>
+      <th class="mdl-data-table__cell--non-numeric">Tracker</th>
+      <th>Start BPM</th>
+      <th class="mdl-data-table__cell--non-numeric">Stereo</th>
+      <th class="mdl-data-table__cell--non-numeric">Message</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range . }}
+    <tr>
+      <td class="mdl-data-table__cell--non-numeric">{{.FileName}}</td>
+      <td class="mdl-data-table__cell--non-numeric">{{.Name}}</td>
+      <td>{{.InsNum}}</td>
+      <td>{{.SmpNum}}</td>
+      <td>{{.PtnNum}}</td>
+      <td class="mdl-data-table__cell--non-numeric">{{.Tracker}} {{.TrackerVersion}}</td>
+      <td>{{.BPM}}</td>
+      <td class="mdl-data-table__cell--non-numeric">{{.Stereo}}</td>
+      <td class="mdl-data-table__cell--non-numeric">{{.Message}}</td>
+    </tr>
+    {{ end }}
+  </tbody>
+</table>
+</body>
+</html>
