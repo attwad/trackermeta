@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"io"
 	"io/ioutil"
-	"path/filepath"
 	"strings"
 
 	"github.com/attwad/trackermeta/data"
@@ -78,7 +77,7 @@ func ReadITFile(path string) (*data.TrackerFile, error) {
 		BPM:            rh.InitialTempoSong,
 		Tracker:        "Impulse Tracker",
 		TrackerVersion: rh.CreatedWithVersion,
-		FileName:       filepath.Base(path),
+		FileName:       path,
 		Name:           strings.TrimSpace(string(rh.Name[:bytes.IndexByte(rh.Name[:], 0)])),
 		Stereo:         f.Stereo,
 	}

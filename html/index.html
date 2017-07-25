@@ -22,7 +22,7 @@
   <tbody>
     {{ range . }}
     <tr>
-      <td class="mdl-data-table__cell--non-numeric">{{.FileName}}</td>
+      <td class="mdl-data-table__cell--non-numeric"><a href="file://{{.FileName}}">{{.FileName}}</a></td>
       <td class="mdl-data-table__cell--non-numeric">{{.Name}}</td>
       <td>{{.InsNum}}</td>
       <td>{{.SmpNum}}</td>

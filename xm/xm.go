@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io/ioutil"
-	"path/filepath"
 	"strings"
 
 	"github.com/attwad/trackermeta/data"
@@ -50,7 +49,7 @@ func ReadXMFile(path string) (*data.TrackerFile, error) {
 		return nil, err
 	}
 	tf := &data.TrackerFile{
-		FileName:       filepath.Base(path),
+		FileName:       path,
 		Name:           strings.TrimSpace(string(t.ModuleName[:])),
 		InsNum:         h.NumInstruments,
 		PtnNum:         h.NumPatterns,
